@@ -26,8 +26,8 @@ index = """
     }
 
     .button1 {
-      background-color: white; 
-      color: black; 
+      background-color: white;
+      color: black;
       border: 2px solid #4CAF50;
     }
 
@@ -37,8 +37,8 @@ index = """
     }
 
     .button2 {
-      background-color: white; 
-      color: black; 
+      background-color: white;
+      color: black;
       border: 2px solid #008CBA;
     }
 
@@ -47,10 +47,10 @@ index = """
       color: white;
     }
 
-    .container { 
+    .container {
       height: 200px;
       position: relative;
-      border: 3px solid green; 
+      border: 3px solid green;
     }
 
     .center {
@@ -81,7 +81,7 @@ index = """
       }
     </script>
     <h1>Remote Door Un/Locker</h1>
-    
+
     <p><strong>THE ENGINE MUST BE ON !!</strong></p>
 
     <p id="demo"></p>
@@ -103,12 +103,12 @@ def hello_world():
 last_send_time = time.monotonic()
 @app.route("/lock")
 def lock():
-  Params().put_bool("AleSato_RemoteLockDoors", True)
+  Params().put_bool("RemoteLockDoors", True)
   return "locked"
 
 @app.route("/unlock")
 def unlock():
-  Params().put_bool("AleSato_RemoteLockDoors", False)
+  Params().put_bool("RemoteLockDoors", False)
   return "unlocked"
 
 def handle_timeout():

@@ -132,10 +132,10 @@ ButtonsWindow::ButtonsWindow(QWidget *parent) : QWidget(parent) {
   main_layout->addWidget(btns_wrapper, 0, Qt::AlignBottom);
   QString initHelloButton = "";
   helloButton = new QPushButton(initHelloButton);
-  
+
   QObject::connect(helloButton, &QPushButton::clicked, [=]() {
-    bool button_state = Params().getBool("AleSato_SteerAlwaysOn");
-    Params().putBool("AleSato_SteerAlwaysOn", !button_state);
+    bool button_state = Params().getBool("SteerAlwaysOn");
+    Params().putBool("SteerAlwaysOn", !button_state);
     // helloButton->setText(button_state? "Hai!" : "World");
     // helloButton->setStyleSheet(QString("font-size: 45px; border-radius: 100px; border-color: %1").arg(helloButtonColors.at(button_state? 2 : 0)));
   });
@@ -143,7 +143,7 @@ ButtonsWindow::ButtonsWindow(QWidget *parent) : QWidget(parent) {
   helloButton->setFixedWidth(200);
   helloButton->setFixedHeight(200);
   btns_layout->addWidget(helloButton, 0, Qt::AlignLeft);
-  btns_layout->addSpacing(35);  
+  btns_layout->addSpacing(35);
 
   setStyleSheet(R"(
     QPushButton {
@@ -161,13 +161,13 @@ ButtonsWindow::ButtonsWindow(QWidget *parent) : QWidget(parent) {
 
 // We need this function when button need's update from CarState for example
 void ButtonsWindow::updateState(const UIState &s) {
-  const auto helloButtonState = Params().getBool("AleSato_SteerAlwaysOn");
+  const auto helloButtonState = Params().getBool("SteerAlwaysOn");
   if(helloButtonState) {
     helloButton->setStyleSheet(QString("font-size: 45px; border-radius: 100px; border-color: %1").arg(helloButtonColors.at(0)));
-    helloButton->setText("STEER\nalways");    
+    helloButton->setText("STEER\nalways");
   } else {
     helloButton->setStyleSheet(QString("font-size: 45px; border-radius: 100px; border-color: %1").arg(helloButtonColors.at(2)));
-    helloButton->setText("stock"); 
+    helloButton->setText("stock");
   }
 }
 
@@ -542,8 +542,8 @@ void AnnotatedCameraWidget::drawHud(QPainter &p) {
   configFont(p, "Inter", 230, "Bold");
 
   // Turning the speed blue
-  drawTextWithColor(p, rect().center().x(), 210, speedStr, buttonColorSpeed ? whiteColor() : QColor(20, 255, 20, 255)); 
-  
+  drawTextWithColor(p, rect().center().x(), 210, speedStr, buttonColorSpeed ? whiteColor() : QColor(20, 255, 20, 255));
+
 
   configFont(p, "Inter", 66, "Regular");
   drawText(p, rect().center().x(), 290, speedUnit, 200);

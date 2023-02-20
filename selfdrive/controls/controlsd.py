@@ -544,7 +544,7 @@ class Controls:
     # Check if openpilot is engaged and actuators are enabled
     self.enabled = self.state in ENABLED_STATES
     self.active = self.state in ACTIVE_STATES
-    if self.active or self.params.get_bool("AleSato_SteerAlwaysOn"):
+    if self.active or self.params.get_bool("SteerAlwaysOn"):
       self.current_alert_types.append(ET.WARNING)
 
   def state_control(self, CS):
@@ -570,11 +570,11 @@ class Controls:
 
     # Check which actuators can be enabled
     standstill = CS.vEgo <= max(self.CP.minSteerSpeed, MIN_LATERAL_CONTROL_SPEED) or CS.standstill
-    CC.latActive = (self.active or self.params.get_bool("AleSato_SteerAlwaysOn")) and not CS.steerFaultTemporary and not CS.steerFaultPermanent and \
-                   (not standstill or self.joystick_mode) and True if not self.params.get_bool("AleSato_SteerAlwaysOn") else (not CS.vEgo < 50 * CV.KPH_TO_MS) or\
+    CC.latActive = (self.active or self.params.get_bool("SteerAlwaysOn")) and not CS.steerFaultTemporary and not CS.steerFaultPermanent and \
+                   (not standstill or self.joystick_mode) and True if not self.params.get_bool("SteerAlwaysOn") else (not CS.vEgo < 50 * CV.KPH_TO_MS) or\
                    (not (((self.sm.frame - self.last_blinker_frame) * DT_CTRL) < 1.0))
-    if (self.params.get_bool("AleSato_SteerAlwaysOn") and (CS.vEgo < 50 * CV.KPH_TO_MS) and (((self.sm.frame - self.last_blinker_frame) * DT_CTRL) < 1.0)):
-      self.events.add(EventName.manualSteeringRequired) 
+    if (self.params.get_bool("SteerAlwaysOn") and (CS.vEgo < 50 * CV.KPH_TO_MS) and (((self.sm.frame - self.last_blinker_frame) * DT_CTRL) < 1.0)):
+      self.events.add(EventName.manualSteeringRequired)
     CC.longActive = self.enabled and not self.events.any(ET.OVERRIDE_LONGITUDINAL) and self.CP.openpilotLongitudinalControl
 
     actuators = CC.actuators
