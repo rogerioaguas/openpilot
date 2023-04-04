@@ -57,11 +57,36 @@ mat3 update_calibration(Eigen::Vector3d device_from_calib_euler, bool wide_camer
   return matmul3(yuv_transform, transform);
 }
 
+int get_maneuver_index(std::string &type, std::string &modifier) {
+  if (type == "arrive") return K_START;
+  if (type == "arrive") return K_DESTINATION;
+  if (type == "fork" && (modifier == "left" || modifier == "slight left")) return K_STAY_LEFT;
+  if (type == "fork" && (modifier == "right" || modifier == "slight right")) return K_STAY_RIGHT;
+  if (type == "fork" && modifier == "straight") return K_STAY_STRAIGHT;
+  if (type == "new name" && modifier == "straight") return K_CONTINUE;
+  if (type == "off ramp" && (modifier == "left" || modifier == "slight left")) return K_EXIT_LEFT;
+  if (type == "off ramp" && (modifier == "right" || modifier == "slight right")) return K_EXIT_RIGHT;
+  if (type == "on ramp" && (modifier == "left" || modifier == "slight left")) return K_RAMP_LEFT;
+  if (type == "on ramp" && (modifier == "right" || modifier == "slight right")) return K_RAMP_RIGHT;
+  if (type == "on ramp" && modifier == "straight") return K_RAMP_STRAIGHT;
+  if (type == "roundabout" && modifier == "left") return K_ROUNDABOUT_ENTER;
+  if (type == "roundabout" && modifier == "right") return K_ROUNDABOUT_ENTER;
+  if (type == "roundabout" && modifier == "straight") return K_ROUNDABOUT_EXIT;
+  if (modifier == "left") return K_LEFT;
+  if (modifier == "right") return K_RIGHT;
+  if (modifier == "sharp left") return K_SHARP_LEFT;
+  if (modifier == "sharp right") return K_SHARP_RIGHT;
+  if (modifier == "slight left") return K_SLIGHT_LEFT;
+  if (modifier == "slight right") return K_SLIGHT_RIGHT;
+  if (modifier == "uturn") return K_UTURN_LEFT;  // NOTE: Mapbox doesn't distinguish between left and right-hand uturns
+  return K_CONTINUE;
+}
+
 
 void run_model(ModelState &model, VisionIpcClient &vipc_client_main, VisionIpcClient &vipc_client_extra, bool main_wide_camera, bool use_extra_client) {
   // messaging
   PubMaster pm({"modelV2", "cameraOdometry"});
-  SubMaster sm({"lateralPlan", "roadCameraState", "liveCalibration", "driverMonitoringState"});
+  SubMaster sm({"lateralPlan", "roadCameraState", "liveCalibration", "driverMonitoringState", "navModel", "navInstruction"});
 
   // setup filter to track dropped frames
   FirstOrderFilter frame_dropped_filter(0., 10., 1. / MODEL_FREQ);
@@ -72,9 +97,11 @@ void run_model(ModelState &model, VisionIpcClient &vipc_client_main, VisionIpcCl
 
   mat3 model_transform_main = {};
   mat3 model_transform_extra = {};
+  bool nav_enabled = false;
   bool live_calib_seen = false;
   float driving_style[DRIVING_STYLE_LEN] = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0};
   float nav_features[NAV_FEATURE_LEN] = {0};
+  float nav_instructions[NAV_INSTRUCTION_LEN] = {0};
 
   VisionBuf *buf_main = nullptr;
   VisionBuf *buf_extra = nullptr;
@@ -137,6 +164,31 @@ void run_model(ModelState &model, VisionIpcClient &vipc_client_main, VisionIpcCl
       vec_desire[desire] = 1.0;
     }
 
+    if (sm.updated("navModel") && nav_enabled) {
+      auto nav_model_features = sm["navModel"].getNavModel().getFeatures();
+      for (int i=0; i<NAV_FEATURE_LEN; i++) {
+        nav_features[i] = nav_model_features[i];
+      }
+    }
+    if (sm.updated("navInstruction") && sm["navInstruction"].getValid()) {
+      float distance = ((float)sm["navInstruction"].getNavInstruction().getManeuverDistance());
+      std::string maneuver_type = sm["navInstruction"].getNavInstruction().getManeuverType();
+      std::string maneuver_modifier = sm["navInstruction"].getNavInstruction().getManeuverModifier();
+      int maneuver_idx = get_maneuver_index(maneuver_type, maneuver_modifier);
+      memset(nav_instructions, 0, sizeof(float)*NAV_INSTRUCTION_LEN);
+      nav_instructions[maneuver_idx] = 1;
+      nav_instructions[NAV_INSTRUCTION_LEN-1] = std::max(0.0f, std::min(2.0f, distance / 1000.0f));
+      nav_enabled = true;
+    }
+
+    // Disable nav inputs if the navInstruction message isn't valid
+    if (nav_enabled && !sm["navInstruction"].getValid()) {
+      memset(nav_features, 0, sizeof(float)*NAV_FEATURE_LEN);
+      memset(nav_instructions, 0, sizeof(float)*NAV_INSTRUCTION_LEN);
+      memset(model.nav_instructions, 0, sizeof(float)*NAV_INSTRUCTION_LEN*(HISTORY_BUFFER_LEN+1));
+      nav_enabled = false;
+    }
+
     // tracked dropped frames
     uint32_t vipc_dropped_frames = meta_main.frame_id - last_vipc_frame_id - 1;
     float frames_dropped = frame_dropped_filter.update((float)std::min(vipc_dropped_frames, 10U));
@@ -154,7 +206,7 @@ void run_model(ModelState &model, VisionIpcClient &vipc_client_main, VisionIpcCl
     }
 
     double mt1 = millis_since_boot();
-    ModelOutput *model_output = model_eval_frame(&model, buf_main, buf_extra, model_transform_main, model_transform_extra, vec_desire, is_rhd, driving_style, nav_features, prepare_only);
+    ModelOutput *model_output = model_eval_frame(&model, buf_main, buf_extra, model_transform_main, model_transform_extra, vec_desire, is_rhd, driving_style, nav_features, nav_instructions, prepare_only);
     double mt2 = millis_since_boot();
     float model_execution_time = (mt2 - mt1) / 1000.0;
 

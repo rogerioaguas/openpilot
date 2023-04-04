@@ -1,10 +1,5 @@
 #pragma once
 
-// gate this here
-#define TEMPORAL
-#define DESIRE
-#define TRAFFIC_CONVENTION
-
 #include <array>
 #include <memory>
 
@@ -16,6 +11,12 @@
 #include "selfdrive/modeld/models/commonmodel.h"
 #include "selfdrive/modeld/models/nav.h"
 #include "selfdrive/modeld/runners/run.h"
+
+// gate this here
+#define TEMPORAL
+#define DESIRE
+#define TRAFFIC_CONVENTION
+#define NAV
 
 constexpr int FEATURE_LEN = 128;
 constexpr int HISTORY_BUFFER_LEN = 99;
@@ -266,12 +267,13 @@ struct ModelState {
 #endif
 #ifdef NAV
   float nav_features[NAV_FEATURE_LEN] = {};
+  float nav_instructions[NAV_INSTRUCTION_LEN*(HISTORY_BUFFER_LEN+1)] = {};
 #endif
 };
 
 void model_init(ModelState* s, cl_device_id device_id, cl_context context);
-ModelOutput *model_eval_frame(ModelState* s, VisionBuf* buf, VisionBuf* buf_wide,
-                              const mat3 &transform, const mat3 &transform_wide, float *desire_in, bool is_rhd, float *driving_style, float *nav_features, bool prepare_only);
+ModelOutput *model_eval_frame(ModelState* s, VisionBuf* buf, VisionBuf* buf_wide, const mat3 &transform, const mat3 &transform_wide,
+			      float *desire_in, bool is_rhd, float *driving_style, float *nav_features, float *nav_instructions, bool prepare_only);
 void model_free(ModelState* s);
 void model_publish(PubMaster &pm, uint32_t vipc_frame_id, uint32_t vipc_frame_id_extra, uint32_t frame_id, float frame_drop,
                    const ModelOutput &net_outputs, uint64_t timestamp_eof,

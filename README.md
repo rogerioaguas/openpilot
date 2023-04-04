@@ -1,3 +1,5 @@
+nav-instruction-model
+
 ![](https://i.imgur.com/b0ZyIx5.jpg)
 
 Table of Contents
@@ -108,7 +110,10 @@ Directory Structure
         ├── clocksd         # Broadcasts current time
         ├── hardware        # Hardware abstraction classes
         ├── logcatd         # systemd journal as a service
-        └── proclogd        # Logs information from /proc
+        ├── loggerd         # Logger and uploader of car data
+        ├── proclogd        # Logs information from /proc
+        ├── sensord         # IMU interface code
+        └── ubloxd          # u-blox GNSS module interface code
     └── selfdrive           # Code needed to drive the car
         ├── assets          # Fonts, images, and sounds for UI
         ├── athena          # Allows communication with the app
@@ -117,12 +122,10 @@ Directory Structure
         ├── controls        # Planning and controls
         ├── debug           # Tools to help you debug and do car ports
         ├── locationd       # Precise localization and vehicle parameter estimation
-        ├── loggerd         # Logger and uploader of car data
         ├── manager         # Daemon that starts/stops all other daemons as needed
         ├── modeld          # Driving and monitoring model runners
         ├── monitoring      # Daemon to determine driver attention
         ├── navd            # Turn-by-turn navigation
-        ├── sensord         # IMU interface code
         ├── test            # Unit tests, system tests, and a car simulator
         └── ui              # The UI
 

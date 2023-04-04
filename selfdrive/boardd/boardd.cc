@@ -106,38 +106,40 @@ void sync_time(Panda *panda, SyncTimeDir dir) {
 bool safety_setter_thread(std::vector<Panda *> pandas) {
   LOGD("Starting safety setter thread");
 
+  Params p;
+
   // there should be at least one panda connected
   if (pandas.size() == 0) {
     return false;
   }
 
-  // set to ELM327 for fingerprinting
+  // initialize to ELM327 without OBD multiplexing for fingerprinting
+  bool obd_multiplexing_enabled = false;
   for (int i = 0; i < pandas.size(); i++) {
-    const uint16_t safety_param = (i > 0) ? 1U : 0U;
-    pandas[i]->set_safety_model(cereal::CarParams::SafetyModel::ELM327, safety_param);
+    pandas[i]->set_safety_model(cereal::CarParams::SafetyModel::ELM327, 1U);
   }
 
-  Params p = Params();
-
-  // wait for VIN to be read
+  // openpilot can switch between multiplexing modes for different FW queries
   while (true) {
     if (do_exit || !check_all_connected(pandas) || !ignition) {
       return false;
     }
 
-    std::string value_vin = p.get("CarVin");
-    if (value_vin.size() > 0) {
-      // sanity check VIN format
-      assert(value_vin.size() == 17);
-      LOGW("got CarVin %s", value_vin.c_str());
+    bool obd_multiplexing_requested = p.getBool("ObdMultiplexingEnabled");
+    if (obd_multiplexing_requested != obd_multiplexing_enabled) {
+      const uint16_t safety_param = obd_multiplexing_requested ? 0U : 1U;
+      for (int i = 0; i < pandas.size(); i++) {
+        pandas[i]->set_safety_model(cereal::CarParams::SafetyModel::ELM327, safety_param);
+      }
+      obd_multiplexing_enabled = obd_multiplexing_requested;
+      p.putBool("ObdMultiplexingChanged", true);
+    }
+
+    if (p.getBool("FirmwareQueryDone")) {
+      LOGW("finished FW query");
       break;
     }
     util::sleep_for(20);
-  }
-
-  // set to ELM327 for ECU knockouts
-  for (Panda *panda : pandas) {
-    panda->set_safety_model(cereal::CarParams::SafetyModel::ELM327, 1U);
   }
 
   std::string params;

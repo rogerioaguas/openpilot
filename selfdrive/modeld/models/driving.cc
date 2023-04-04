@@ -53,12 +53,12 @@ void model_init(ModelState* s, cl_device_id device_id, cl_context context) {
 
 #ifdef NAV
   s->m->addNavFeatures(s->nav_features, NAV_FEATURE_LEN);
+  s->m->addNavInstructions(s->nav_instructions, NAV_INSTRUCTION_LEN*(HISTORY_BUFFER_LEN+1));
 #endif
-
 }
 
-ModelOutput* model_eval_frame(ModelState* s, VisionBuf* buf, VisionBuf* wbuf,
-                              const mat3 &transform, const mat3 &transform_wide, float *desire_in, bool is_rhd, float *driving_style, float *nav_features, bool prepare_only) {
+ModelOutput* model_eval_frame(ModelState* s, VisionBuf* buf, VisionBuf* wbuf, const mat3 &transform, const mat3 &transform_wide,
+			      float *desire_in, bool is_rhd, float *driving_style, float *nav_features, float *nav_instructions, bool prepare_only) {
 #ifdef DESIRE
   std::memmove(&s->pulse_desire[0], &s->pulse_desire[DESIRE_LEN], sizeof(float) * DESIRE_LEN*HISTORY_BUFFER_LEN);
   if (desire_in != NULL) {
@@ -78,6 +78,8 @@ LOGT("Desire enqueued");
 
 #ifdef NAV
   std::memcpy(s->nav_features, nav_features, sizeof(float)*NAV_FEATURE_LEN);
+  std::memmove(&s->nav_instructions[0], &s->nav_instructions[NAV_INSTRUCTION_LEN], sizeof(float) * NAV_INSTRUCTION_LEN*HISTORY_BUFFER_LEN);
+  std::memcpy(&s->nav_instructions[NAV_INSTRUCTION_LEN*HISTORY_BUFFER_LEN], nav_instructions, sizeof(float)*NAV_INSTRUCTION_LEN);
 #endif
 
 #ifdef DRIVING_STYLE
@@ -200,7 +202,7 @@ void fill_meta(cereal::ModelDataV2::MetaData::Builder meta, const ModelOutputMet
 }
 
 template<size_t size>
-void fill_xyzt(cereal::ModelDataV2::XYZTData::Builder xyzt, const std::array<float, size> &t,
+void fill_xyzt(cereal::XYZTData::Builder xyzt, const std::array<float, size> &t,
                const std::array<float, size> &x, const std::array<float, size> &y, const std::array<float, size> &z) {
   xyzt.setT(to_kj_array_ptr(t));
   xyzt.setX(to_kj_array_ptr(x));
@@ -209,7 +211,7 @@ void fill_xyzt(cereal::ModelDataV2::XYZTData::Builder xyzt, const std::array<flo
 }
 
 template<size_t size>
-void fill_xyzt(cereal::ModelDataV2::XYZTData::Builder xyzt, const std::array<float, size> &t,
+void fill_xyzt(cereal::XYZTData::Builder xyzt, const std::array<float, size> &t,
                const std::array<float, size> &x, const std::array<float, size> &y, const std::array<float, size> &z,
                const std::array<float, size> &x_std, const std::array<float, size> &y_std, const std::array<float, size> &z_std) {
   fill_xyzt(xyzt, t, x, y, z);
