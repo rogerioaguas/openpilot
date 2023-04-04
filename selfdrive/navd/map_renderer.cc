@@ -12,6 +12,7 @@
 
 const float DEFAULT_ZOOM = 13.5; // Don't go below 13 or features will start to disappear
 const int HEIGHT = 512, WIDTH = 512;
+const int MODEL_HEIGHT = 256, MODEL_WIDTH = 256;
 const int NUM_VIPC_BUFFERS = 4;
 
 const int EARTH_CIRCUMFERENCE_METERS = 40075000;
@@ -70,7 +71,7 @@ MapRenderer::MapRenderer(const QMapboxGLSettings &settings, bool online) : m_set
 
   if (online) {
     vipc_server.reset(new VisionIpcServer("navd"));
-    vipc_server->create_buffers(VisionStreamType::VISION_STREAM_MAP, NUM_VIPC_BUFFERS, false, WIDTH/2, HEIGHT/2);
+    vipc_server->create_buffers(VisionStreamType::VISION_STREAM_MAP, NUM_VIPC_BUFFERS, false, MODEL_WIDTH, MODEL_HEIGHT);
     vipc_server->start_listener();
 
     pm.reset(new PubMaster({"navThumbnail", "mapRenderState"}));
@@ -179,9 +180,9 @@ void MapRenderer::publish(const double render_time) {
 
   // RGB to greyscale and crop
   memset(dst, 128, buf->len);
-  for (int r = 0; r < HEIGHT/2; r++) {
-    for (int c = 0; c < WIDTH/2; c++) {
-      dst[r*WIDTH/2 + c] = src[((HEIGHT/4 + r)*WIDTH + (c+WIDTH/4)) * 3];
+  for (int r = 0; r < MODEL_HEIGHT; r++) {
+    for (int c = 0; c < MODEL_WIDTH; c++) {
+      dst[r*MODEL_WIDTH + c] = src[((r+128)*WIDTH + (c+128)) * 3];
     }
   }
 
