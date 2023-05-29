@@ -43,9 +43,9 @@ def manager_init() -> None:
     ("DisengageOnAccelerator", "0"),
     ("GsmMetered", "1"),
     ("HasAcceptedTerms", "0"),
+    ("HotspotWhenStart", "0"),
     ("LanguageSetting", "main_en"),
     ("OpenpilotEnabledToggle", "1"),
-
     ("AccMadsCombo", "1"),
     ("AutoLaneChangeTimer", "0"),
     ("BelowSpeedPause", "0"),
@@ -108,6 +108,11 @@ def manager_init() -> None:
 
   if params.get_bool("RecordFrontLock"):
     params.put_bool("RecordFront", True)
+
+  # Set Tethering when boot
+  hotspot_is_enabled = params.get_bool("HotspotWhenStart")
+  if hotspot_is_enabled:
+    os.system('nmcli con up Hotspot')
 
   # set unset params
   for k, v in default_params:
